@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pengungkapan Isi Hati</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+  /* Layout: a classroom floor plan on a chalkboard (gate) that rolls up like a screen,
+     revealing one sheet of ruled notebook paper with taped doodles; the floor plan returns at the end. */
+  :root {
+    --board: #16302a;
+    --board-2: #21443b;
+    --chalk: #eef3ea;
+    --chalk-dim: rgba(238, 243, 234, 0.62);
+    --paper: #fcfdff;
+    --rule: #c9d8f3;
+    --margin: #f1969c;
+    --ink: #23358f;
+    --ink-soft: #5a67a6;
+    --hl: #ffe66b;
+    --pink: #ff9db6;
+    --rose: #d93a6a;
+    --hand: 'Caveat', 'Segoe Script', 'Bradley Hand', cursive;
+    --body: 'Patrick Hand', 'Chalkboard SE', 'Comic Sans MS', sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+
+  body {
+    background-color: var(--board);
+    background-image:
+      radial-gradient(ellipse 70% 40% at 20% 0%, var(--board-2) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(255, 157, 182, 0.12) 0%, transparent 70%);
+    background-attachment: fixed;
+    color: var(--chalk);
+    font-family: var(--body);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  body.locked { overflow: hidden; height: 100%; }
+  :focus-visible { outline: 3px solid var(--hl); outline-offset: 3px; }
+  #fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 60; pointer-events: none; }
+
+  /* ---------- Classroom drawing (shared) ---------- */
+  .room { display: block; overflow: visible; max-width: 100%; }
+  .room text { font-family: var(--hand); font-size: 18px; fill: var(--r-text); font-weight: 700; }
+  .room .desk { fill: var(--r-desk); stroke: var(--r-line); stroke-width: 1.8; }
+  .room .desk.her { fill: rgba(255, 157, 182, 0.35); stroke: var(--pink); }
+  .room .desk.me { fill: rgba(255, 214, 70, 0.38); stroke: #e8b923; }
+  .room .chair { fill: none; stroke: var(--r-line); stroke-width: 1.5; opacity: 0.7; }
+  .room .board { fill: none; stroke: var(--r-line); stroke-width: 2.2; }
+  .room .lbl-board { font-size: 14px; font-weight: 500; opacity: 0.7; }
+  .room .gaze { fill: none; stroke: var(--r-gaze); stroke-width: 2.8; stroke-linecap: round; }
+  .room .traveler { fill: var(--r-gaze); }
+  .room .glow { fill: var(--pink); opacity: 0; transition: opacity 1s ease; }
+  .room.done .glow { opacity: 0.28; }
+  .room .smile { opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(0.3) rotate(-20deg); transition: opacity 0.6s ease 0.3s, transform 0.8s cubic-bezier(0.2, 1.6, 0.4, 1) 0.3s; }
+  .room .smile circle.face { fill: #fff3b0; stroke: #e8b923; stroke-width: 2; }
+  .room .smile .dot { fill: #6b4b00; }
+  .room .smile path { fill: none; stroke: #6b4b00; stroke-width: 2; stroke-linecap: round; }
+  .show-smile.done .smile { opacity: 1; transform: none; }
+
+  /* ---------- Gate ---------- */
+  .gate {
+    position: fixed; inset: 0; z-index: 50; overflow: auto; text-align: center;
+    background-color: var(--board);
+    background-image:
+      radial-gradient(ellipse 80% 45% at 50% 0%, var(--board-2) 0%, transparent 75%),
+      radial-gradient(ellipse 50% 30% at 85% 90%, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+    padding: max(20px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(20px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    display: flex;
+    transition: transform 1.2s cubic-bezier(0.7, 0, 0.2, 1);
+    border-bottom: 6px solid #6b4a2f;
+  }
+  .gate.up { transform: translateY(-102%); }
+  .gate-inner { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .g-kicker { margin: 0; font-size: 13px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--chalk-dim); }
+  .g-title { margin: 0; font-family: var(--hand); font-weight: 700; font-size: clamp(46px, 13vw, 78px); line-height: 0.95; color: var(--chalk); text-wrap: balance; text-shadow: 0 0 1px rgba(255, 255, 255, 0.6); }
+  .g-from { margin: 0; font-family: var(--hand); font-size: clamp(26px, 7vw, 34px); color: var(--pink); }
+  .gate .room { --r-line: rgba(238, 243, 234, 0.72); --r-text: var(--chalk); --r-desk: rgba(255, 255, 255, 0.03); --r-gaze: var(--pink); height: min(44vh, 340px); width: auto; margin-top: 6px; }
+  .g-cap { margin: 0; font-family: var(--hand); font-size: 26px; color: var(--chalk-dim); opacity: 0; transition: opacity 1s ease; }
+  .gate.ready .g-cap { opacity: 1; }
+  .open-btn {
+    margin-top: 6px; font: inherit; font-size: 21px; color: var(--ink); background: var(--paper); border: 0; padding: 12px 28px;
+    transform: rotate(-1.5deg); cursor: pointer; box-shadow: 0 6px 0 rgba(0, 0, 0, 0.25), 0 14px 26px rgba(0, 0, 0, 0.3);
+    opacity: 0; pointer-events: none; transition: opacity 0.8s ease, transform 0.2s ease; display: inline-flex; align-items: center; gap: 10px;
+  }
+  .open-btn svg { width: 18px; height: 18px; fill: var(--rose); }
+  .gate.ready .open-btn { opacity: 1; pointer-events: auto; }
+  .open-btn:hover { transform: rotate(0deg) translateY(-2px); }
+
+  /* ---------- Sheet ---------- */
+  main { position: relative; z-index: 1; overflow-x: clip; padding-block: 36px 80px; transition: opacity 0.8s ease; }
+  body.locked main { opacity: 0; }
+
+  .sheet {
+    --lh: 32px; --mx: 44px; --fs: 20px;
+    position: relative; max-width: 720px; margin: 0 auto; background-color: var(--paper);
+    background-image:
+      linear-gradient(90deg, transparent calc(var(--mx) - 2px), var(--margin) calc(var(--mx) - 2px), var(--margin) var(--mx), transparent var(--mx)),
+      linear-gradient(90deg, transparent calc(var(--mx) + 4px), rgba(241, 150, 156, 0.55) calc(var(--mx) + 4px), rgba(241, 150, 156, 0.55) calc(var(--mx) + 5px), transparent calc(var(--mx) + 5px));
+    box-shadow: 0 2px 0 #dfe6f5, 0 30px 60px rgba(0, 0, 0, 0.45);
+    color: var(--ink);
+  }
+  .sheet::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 30px; pointer-events: none;
+    background: radial-gradient(circle 8px at 16px 42px, var(--board) 7px, transparent 8px) 0 0 / 30px 480px repeat-y;
+  }
+  @media (min-width: 720px) { .sheet { --lh: 36px; --mx: 64px; --fs: 22px; } }
+
+  .head { padding: 30px clamp(16px, 5vw, 44px) 22px calc(var(--mx) + 16px); }
+  .fields { display: grid; gap: 6px; margin-bottom: 22px; }
+  .fields p { margin: 0; display: flex; gap: 10px; align-items: baseline; border-bottom: 1.5px dotted var(--ink-soft); padding-bottom: 2px; min-width: 0; }
+  .fields span { font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-soft); flex: none; width: 4.2em; }
+  .fields b { font-family: var(--hand); font-size: 26px; font-weight: 500; line-height: 1.1; min-width: 0; overflow-wrap: anywhere; }
+  .eyebrow { margin: 0 0 4px; font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-soft); }
+  h1 { margin: 0; font-family: var(--hand); font-weight: 700; font-size: clamp(40px, 12vw, 96px); line-height: 0.95; text-wrap: balance; overflow-wrap: anywhere; }
+  .title-hl { background: linear-gradient(transparent 62%, rgba(255, 157, 182, 0.6) 62%, rgba(255, 157, 182, 0.6) 92%, transparent 92%) no-repeat 0 0 / 0 100%; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  body.opened .title-hl { animation: sweep 1.1s ease 0.7s forwards; }
+  @keyframes sweep { to { background-size: 100% 100%; } }
+  .byline { margin: 10px 0 0; font-family: var(--hand); font-size: clamp(30px, 8vw, 40px); color: var(--rose); line-height: 1.1; }
+  body.opened .head > * { animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  body.opened .head > :nth-child(2) { animation-delay: 0.15s; }
+  body.opened .head > :nth-child(3) { animation-delay: 0.3s; }
+  body.opened .head > :nth-child(4) { animation-delay: 0.6s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  .lines {
+    padding: 0 clamp(16px, 5vw, 44px) var(--lh) calc(var(--mx) + 16px);
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--lh) - 1px), var(--rule) calc(var(--lh) - 1px), var(--rule) var(--lh));
+    background-position: 0 -3px;
+    border-top: 2px solid var(--rule);
+  }
+  .lines p { margin: 0 0 var(--lh); font-size: var(--fs); line-height: var(--lh); max-width: 60ch; overflow-wrap: break-word; }
+  .lines p.greet { font-family: var(--hand); font-weight: 700; font-size: clamp(34px, 8.5vw, 46px); line-height: calc(var(--lh) * 2); }
+  .lines p.soft { font-family: var(--hand); font-weight: 500; font-size: clamp(34px, 8.5vw, 44px); line-height: calc(var(--lh) * 2); color: var(--ink-soft); }
+
+  .js .rv { opacity: 0; transform: translateY(16px); transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .js .rv.in { opacity: 1; transform: none; }
+
+  .hl { background: linear-gradient(transparent 50%, rgba(255, 230, 107, 0.8) 50%, rgba(255, 230, 107, 0.8) 94%, transparent 94%) no-repeat 0 0 / 100% 100%; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  .hl.pk { background-image: linear-gradient(transparent 50%, rgba(255, 157, 182, 0.6) 50%, rgba(255, 157, 182, 0.6) 94%, transparent 94%); }
+  .js .hl { background-size: 0 100%; transition: background-size 1.3s ease 0.5s; }
+  .js .rv.in .hl { background-size: 100% 100%; }
+
+  /* Confession lines */
+  .lines p.confess { max-width: none; text-align: center; font-family: var(--hand); font-weight: 700; font-size: clamp(32px, 9vw, 62px); line-height: calc(var(--lh) * 2); color: var(--ink); margin-block: var(--lh); text-wrap: balance; }
+  .circled { position: relative; display: inline-block; white-space: nowrap; padding: 0 0.12em; }
+  .circled svg { position: absolute; left: -10px; right: -10px; top: -4px; bottom: -6px; width: calc(100% + 20px); height: calc(100% + 10px); overflow: visible; pointer-events: none; }
+  .circled path { fill: none; stroke: var(--rose); stroke-width: 3.2; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; vector-effect: non-scaling-stroke; }
+  .js .circled path { stroke-dashoffset: 1; transition: stroke-dashoffset 1.4s ease 0.7s; }
+  .js .rv.in .circled path { stroke-dashoffset: 0; }
+
+  /* Taped doodles */
+  .sticker {
+    --rot: -2deg; position: relative; width: min(210px, 100%); height: calc(var(--lh) * 6); margin: 0 0 var(--lh); padding: 18px 10px 8px;
+    background: #fff; border: 1px solid #e3e9f7; box-shadow: 0 8px 18px rgba(35, 53, 143, 0.18);
+    display: flex; flex-direction: column; align-items: center; gap: 6px; transform: rotate(var(--rot));
+  }
+  .sticker.r { margin-left: auto; --rot: 2.2deg; }
+  .sticker::before { content: ""; position: absolute; top: -10px; left: 50%; width: 72px; height: 20px; background: rgba(255, 214, 70, 0.6); transform: translateX(-50%) rotate(-3deg); }
+  .sticker.r::before { transform: translateX(-50%) rotate(3deg); background: rgba(255, 157, 182, 0.6); }
+  .sticker svg { width: 120px; height: 96px; flex: none; fill: none; stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .sticker svg .f-pk { fill: var(--pink); } .sticker svg .f-bl { fill: #a9c4ff; } .sticker svg .f-yl { fill: var(--hl); }
+  .sticker svg .f-gr { fill: #9be3b4; } .sticker svg .f-wh { fill: #fff; } .sticker svg .f-ink { fill: var(--ink); stroke: none; }
+  .sticker figcaption { font-family: var(--hand); font-size: 23px; line-height: 1.05; color: var(--ink-soft); text-align: center; }
+  .js .sticker.rv { transform: translateY(18px) rotate(var(--rot)) scale(0.96); }
+  .js .sticker.rv.in { transform: rotate(var(--rot)); }
+
+  /* ---------- Finale ---------- */
+  .finale { padding: 36px clamp(16px, 5vw, 44px) 56px calc(var(--mx) + 16px); border-top: 2px dashed var(--rule); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .finale .room { --r-line: #4a5aa8; --r-text: var(--ink); --r-desk: #fff; --r-gaze: var(--rose); width: min(100%, 270px); height: auto; }
+  .fin-cap { margin: 0; font-family: var(--hand); font-size: 28px; color: var(--ink-soft); }
+  .hormat { margin: 18px 0 0; font-family: var(--hand); font-weight: 700; font-size: clamp(36px, 9vw, 46px); line-height: 1; }
+  .sign { margin: 0; font-family: var(--hand); font-size: clamp(28px, 7vw, 34px); line-height: 1.15; color: var(--rose); max-width: 17em; text-wrap: balance; }
+  .tag { position: relative; margin: 14px 0 0; padding: 8px 18px; background: #fff3b0; font-family: var(--hand); font-size: 26px; transform: rotate(-2deg); box-shadow: 0 4px 10px rgba(35, 53, 143, 0.18); }
+  .replay { margin-top: 26px; font: inherit; font-size: 18px; color: var(--ink); background: none; border: 2px dashed var(--ink-soft); padding: 10px 20px; cursor: pointer; transition: background 0.2s, color 0.2s; }
+  .replay:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .js .fin-seq { opacity: 0; }
+  .finale.in .fin-seq { animation: rise 0.9s ease var(--d, 0s) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0s !important; transition-duration: 0.01ms !important; transition-delay: 0s !important; }
+  }
+</style>
+<script>document.documentElement.classList.add('js');</script>
+
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<section class="gate" id="gate" aria-label="Pembuka">
+  <div class="gate-inner">
+    <p class="g-kicker">Catatan dari bangku belakang</p>
+    <h2 class="g-title">Pengungkapan Isi Hati</h2>
+    <p class="g-from">From Xaven to Kirania</p>
+    <div id="gateRoom"></div>
+    <p class="g-cap">dari pojok belakang, ke pojok depan</p>
+    <button class="open-btn" id="open" type="button">Buka suratnya
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.5C5 16.9 2 13.2 2 9.2 2 6.1 4.3 4 7 4c2 0 3.7 1.1 5 3 1.3-1.9 3-3 5-3 2.7 0 5 2.1 5 5.2 0 4-3 7.7-10 12.3z"/></svg>
+    </button>
+  </div>
+</section>
+
+<main>
+  <article class="sheet">
+    <header class="head">
+      <div class="fields">
+        <p><span>Dari</span><b>Xaven</b></p>
+        <p><span>Untuk</span><b>Kirania Neary Dakshya (Rara)</b></p>
+      </div>
+      <p class="eyebrow">Catatan dari bangku belakang</p>
+      <h1><span class="title-hl">Pengungkapan Isi Hati</span></h1>
+      <p class="byline">From Xaven to Kirania</p>
+    </header>
+
+    <div class="lines">
+      <p class="greet rv">Hai, Kirania Neary Dakshya (Rara).</p>
+
+      <p class="rv">Di karya website gw kali ini, gw enggak berniat menampilkan ataupun memamerkan karya apa pun. Kali ini, gw cuma ingin menyampaikan beberapa paragraf yang berisi sesuatu yang selama ini mungkin belum pernah berani gw ungkapkan secara langsung: <span class="hl">isi hati gw ke lu.</span></p>
+
+      <p class="rv">Kita sudah menjadi teman sekolah selama lebih dari dua tahun. Awalnya, gw menganggap lu hanya sebagai salah satu teman sekolah yang pintar seperti kebanyakan orang lainnya. Namun, entah sejak kapan, muncul perasaan yang berbeda dalam diri gw. Sebuah rasa kagum yang perlahan tumbuh menjadi sesuatu yang lebih dari sekadar kekaguman.</p>
+
+      <p class="rv">Mungkin semuanya mulai terasa ketika kita memasuki kelas 9, tepatnya saat lu bersedia mendengarkan berbagai saran editing dari gw. Hal sederhana seperti itu mungkin enggak berarti banyak bagi lu, tetapi entah kenapa, bagi gw, itu menjadi salah satu momen yang cukup berkesan.</p>
+
+      <figure class="sticker rv">
+        <svg viewBox="0 0 120 96" aria-hidden="true"><rect class="f-wh" x="8" y="26" width="104" height="46" rx="5"/><rect class="f-pk" x="15" y="34" width="28" height="30" rx="3"/><rect class="f-bl" x="47" y="34" width="26" height="30" rx="3"/><rect class="f-yl" x="77" y="34" width="28" height="30" rx="3"/><path d="M60 14v66"/><path class="f-ink" d="M53 8h14l-7 11z"/><path d="M14 86h92"/></svg>
+        <figcaption>saran editing di kelas 9</figcaption>
+      </figure>
+
+      <p class="rv">Ketika kita menjadi rekan satu tim dalam lomba desain poster, kita sempat duduk bersebelahan. Meskipun hubungan kita saat itu belum terlalu dekat dan kita enggak banyak berbicara, jujur saja, ada perasaan hangat yang sulit gw jelaskan. Kehadiran lu di samping gw saat itu membuat suasana lomba terasa berbeda. Di tengah rasa gugup dan detak jantung yang enggak beraturan, entah bagaimana, <span class="hl">keberadaan lu membuat semuanya terasa sedikit lebih tenang.</span></p>
+
+      <figure class="sticker r rv">
+        <svg viewBox="0 0 120 96" aria-hidden="true"><rect class="f-wh" x="34" y="6" width="52" height="56" rx="3"/><circle class="f-pk" cx="60" cy="26" r="10"/><path d="M42 44h36M42 52h24"/><rect class="f-bl" x="20" y="72" width="30" height="14" rx="4"/><rect class="f-yl" x="70" y="72" width="30" height="14" rx="4"/><path d="M26 72V62M94 72V62"/></svg>
+        <figcaption>duduk bersebelahan, lomba poster</figcaption>
+      </figure>
+
+      <p class="rv">Lu adalah orang pertama yang berhasil membuat gw merasakan ketertarikan seperti ini. Bukan karena penampilan ataupun faktor fisik lainnya, melainkan karena <span class="hl pk">sikap dan kepribadian lu.</span></p>
+
+      <p class="rv">Gw suka melihat lu yang sering ceria di sekolah. Terutama ketika lu sedang bermain UNO bersama sirkel lu. Kadang, dari bangku belakang, tanpa sadar gw memperhatikan bagaimana lu tertawa dan tersenyum bersama teman-teman lu.</p>
+
+      <figure class="sticker rv">
+        <svg viewBox="0 0 120 96" aria-hidden="true"><g transform="rotate(-32 60 88)"><rect class="f-gr" x="41" y="14" width="38" height="58" rx="5"/></g><g transform="rotate(-11 60 88)"><rect class="f-yl" x="41" y="14" width="38" height="58" rx="5"/></g><g transform="rotate(10 60 88)"><rect class="f-bl" x="41" y="14" width="38" height="58" rx="5"/></g><g transform="rotate(31 60 88)"><rect class="f-pk" x="41" y="14" width="38" height="58" rx="5"/><ellipse class="f-wh" cx="60" cy="43" rx="11" ry="18" transform="rotate(20 60 43)"/><text x="60" y="52" text-anchor="middle" font-size="24" font-weight="700" font-family="Caveat, cursive" fill="#23358f" stroke="none">7</text></g></svg>
+        <figcaption>main kartu bareng sirkel</figcaption>
+      </figure>
+
+      <p class="rv">Mungkin terdengar aneh, tetapi melihat hal sesederhana itu saja sudah cukup membuat gw merasa senang. Bahkan, terkadang gw sendiri bingung, kenapa bisa ada seseorang yang membuat gw begitu tertarik hanya dengan melihat senyumannya.</p>
+
+      <p class="rv">Kalau dibandingkan, mungkin kepribadian kita berdua cukup berbeda, bahkan bisa dibilang seperti dua hal yang bertolak belakang.</p>
+
+      <p class="rv">Lu dikenal sebagai orang yang pintar, sedangkan gw merasa kemampuan akademis gw masih biasa saja. Lu punya pembawaan yang kalem dan enggak toxic, sementara gw terkadang masih sering berbicara kasar ketika bersama sirkel gw. Lu juga terlihat mudah diajak berbicara, sedangkan gw lebih sering melontarkan jokes yang terkadang enggak jelas.</p>
+
+      <p class="rv">Kita memang berbeda dalam banyak hal. Namun, entah kenapa, <span class="hl">perbedaan itu enggak membuat rasa kagum gw berkurang.</span></p>
+
+      <p class="rv">Akhir-akhir ini, gw juga sering memperhatikan lu dari kejauhan. Misalnya ketika lu duduk di bangku pojok paling depan, sementara gw berada di bagian pojok belakang. Terkadang, tanpa sadar, pandangan gw tertuju ke arah lu.</p>
+
+      <figure class="sticker r rv">
+        <svg viewBox="0 0 120 96" aria-hidden="true"><path class="f-wh" d="M8 50Q60 8 112 50Q60 92 8 50Z"/><circle class="f-bl" cx="60" cy="50" r="17"/><circle class="f-ink" cx="60" cy="50" r="7"/><circle cx="55" cy="45" r="3" fill="#fff" stroke="none"/><path d="M22 30l-5-8M42 20l-2-9M78 20l2-9M98 30l5-8"/></svg>
+        <figcaption>diam-diam, dari kejauhan</figcaption>
+      </figure>
+
+      <p class="rv">Bukan karena gw mengharapkan sesuatu yang berlebihan. Mungkin hanya ada sedikit harapan sederhana, yaitu suatu hari lu menyadari keberadaan gw dan <span class="hl pk">membalas pandangan itu dengan sebuah senyuman.</span></p>
+
+      <p class="rv">Dan pada akhirnya, setelah semua hal yang gw ceritakan ini, ada satu kalimat yang sebenarnya ingin gw sampaikan sejak awal.</p>
+
+      <p class="confess rv">“<span class="circled">Gw suka sama lu<svg viewBox="0 0 300 80" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M24 40C20 12 130 4 205 7C275 10 296 28 290 47C284 70 190 77 120 75C50 73 8 62 13 36C16 22 40 14 72 10"/></svg></span>, Kirania Neary Dakshya.”</p>
+
+      <p class="rv">Ada satu pengalaman yang mungkin menjadi salah satu momen paling berkesan bagi gw, yaitu ketika kita mengerjakan tugas kelompok di rumah Nabil. Entah kenapa, suasana saat itu terasa berbeda. Di tengah kegiatan kelompok, terkadang gw memperhatikan lu tanpa sepengetahuan lu. Mungkin bagi lu itu hanyalah kegiatan kelompok biasa, tetapi bagi gw, momen sederhana seperti itu punya kenangan tersendiri.</p>
+
+      <figure class="sticker rv">
+        <svg viewBox="0 0 120 96" aria-hidden="true"><rect class="f-wh" x="30" y="46" width="60" height="40"/><path class="f-pk" d="M20 48L60 16l40 32z"/><rect class="f-yl" x="53" y="62" width="14" height="24"/><rect class="f-bl" x="36" y="54" width="12" height="12"/><rect class="f-bl" x="72" y="54" width="12" height="12"/><path d="M10 86h100"/></svg>
+        <figcaption>tugas kelompok di rumah Nabil</figcaption>
+      </figure>
+
+      <p class="rv">Gw sadar, mungkin semua yang gw tulis dan ungkapkan melalui website ini pada akhirnya enggak akan mengubah apa pun. Bisa saja lu enggak memiliki perasaan yang sama, atau bahkan enggak pernah memandang gw dengan cara yang sama seperti gw memandang lu.</p>
+
+      <p class="soft rv">Namun, enggak apa-apa.</p>
+
+      <p class="rv">Setidaknya, kali ini gw sudah berani mengungkapkan sesuatu yang selama ini hanya bisa gw simpan sendiri. Gw enggak ingin terus-menerus bertanya-tanya tentang bagaimana jadinya kalau suatu hari gw benar-benar berani menyampaikan perasaan ini.</p>
+
+      <p class="rv">Gw juga ingin meminta maaf apabila selama kita berteman ada perkataan atau tindakan gw yang pernah menyakiti, mengecewakan, ataupun membuat lu merasa enggak nyaman, baik yang disengaja maupun tidak disengaja. <span class="hl">Gw benar-benar minta maaf.</span></p>
+
+      <p class="rv">Dan kalau seandainya lu menerima perasaan gw, tentu gw akan sangat menghargainya. Namun, kalau ternyata perasaan itu enggak terbalas, gw juga akan berusaha menghargai keputusan dan perasaan lu. Gw enggak ingin pengungkapan ini menjadi sesuatu yang membuat lu merasa terbebani.</p>
+
+      <p class="rv">Terakhir, terima kasih sudah meluangkan waktu untuk membuka website sederhana yang gw buat selama beberapa jam ini. Mungkin website ini bukan sesuatu yang luar biasa, tetapi setiap bagian di dalamnya punya maksud dan cerita tersendiri.</p>
+
+      <p class="rv">Sekali lagi, ada satu hal yang ingin gw sampaikan sebelum mengakhiri semuanya.</p>
+
+      <p class="confess rv">“<span class="circled">Gw suka sama lu.<svg viewBox="0 0 300 80" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M24 40C20 12 130 4 205 7C275 10 296 28 290 47C284 70 190 77 120 75C50 73 8 62 13 36C16 22 40 14 72 10"/></svg></span>”</p>
+
+      <p class="rv">Terima kasih sudah menjadi salah satu bagian dari cerita masa sekolah gw yang <span class="hl pk">mungkin akan selalu gw ingat.</span></p>
+    </div>
+
+    <footer class="finale" id="finale">
+      <div id="finRoom"></div>
+      <p class="fin-cap fin-seq" style="--d:3.4s">dari bangku belakang, sampai ke bangku depan</p>
+      <p class="hormat fin-seq" style="--d:4s">Hormat gw,</p>
+      <p class="sign fin-seq" style="--d:4.6s">Seseorang yang diam-diam menyimpan rasa kagum kepadamu.</p>
+      <p class="tag fin-seq" style="--d:5.2s">dari Xaven, untuk Kirania</p>
+      <button class="replay fin-seq" id="replay" type="button" style="--d:5.6s">Baca dari awal</button>
+    </footer>
+  </article>
+</main>
+
+<script>
+(function () {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var body = document.body;
+  var gate = document.getElementById('gate');
+  var openBtn = document.getElementById('open');
+  var finale = document.getElementById('finale');
+  var replay = document.getElementById('replay');
+  var observer = null, opened = false, startTimer = 0, readyTimer = 0;
+
+  /* ---------- Classroom floor plan ---------- */
+  function room(uid, smile) {
+    var s = '<svg class="room' + (smile ? ' show-smile' : '') + '" viewBox="0 0 306 372" role="img" aria-label="Denah kelas: gw di bangku pojok belakang, Rara di bangku pojok depan">';
+    s += '<defs><filter id="ch' + uid + '" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="5" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.6"/></filter></defs>';
+    s += '<circle class="glow" cx="48" cy="79" r="40"/>';
+    s += '<g filter="url(#ch' + uid + ')"><rect class="board" x="40" y="8" width="226" height="26" rx="3"/>';
+    for (var r = 0; r < 5; r++) for (var c = 0; c < 4; c++) {
+      var x = 24 + c * 70, y = 64 + r * 60;
+      var cls = (r === 0 && c === 0) ? 'desk her' : (r === 4 && c === 3) ? 'desk me' : 'desk';
+      s += '<rect class="' + cls + '" x="' + x + '" y="' + y + '" width="48" height="30" rx="4"/>';
+      s += '<rect class="chair" x="' + (x + 14) + '" y="' + (y + 34) + '" width="20" height="9" rx="3"/>';
+    }
+    s += '</g>';
+    s += '<text class="lbl-board" x="153" y="26" text-anchor="middle">papan tulis</text>';
+    s += '<text x="48" y="55" text-anchor="middle">Rara</text>';
+    s += '<text x="258" y="366" text-anchor="middle">Gw</text>';
+    s += '<path class="gaze" d="M258 304C244 214 84 196 52 96"/>';
+    s += '<path class="traveler" d="M0 5C-9 -2 -6 -9 0 -4.5C6 -9 9 -2 0 5Z" transform="translate(258 304) scale(1.5)"/>';
+    s += '<g class="smile"><circle class="face" cx="98" cy="46" r="14"/><circle class="dot" cx="93" cy="43" r="1.8"/><circle class="dot" cx="103" cy="43" r="1.8"/><path d="M91 50Q98 58 105 50"/></g>';
+    return s + '</svg>';
+  }
+  document.getElementById('gateRoom').innerHTML = room('g', false);
+  document.getElementById('finRoom').innerHTML = room('f', true);
+  var gateSvg = document.querySelector('#gateRoom svg');
+  var finSvg = document.querySelector('#finRoom svg');
+
+  function prep(svg) {
+    cancelAnimationFrame(svg._raf);
+    var p = svg.querySelector('.gaze'), h = svg.querySelector('.traveler');
+    var L = p.getTotalLength(); svg._L = L;
+    p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
+    var s0 = p.getPointAtLength(0);
+    h.setAttribute('transform', 'translate(' + s0.x + ' ' + s0.y + ') scale(1.5)');
+    svg.classList.remove('done');
+  }
+  function play(svg, cb) {
+    prep(svg);
+    var p = svg.querySelector('.gaze'), h = svg.querySelector('.traveler'), L = svg._L;
+    function fin() {
+      p.style.strokeDashoffset = 0;
+      var e = p.getPointAtLength(L);
+      h.setAttribute('transform', 'translate(' + e.x + ' ' + e.y + ') scale(1.5)');
+      svg.classList.add('done');
+      if (cb) cb();
+    }
+    if (reduce) { fin(); return; }
+    var t0 = null;
+    function step(ts) {
+      if (t0 === null) t0 = ts;
+      var t = Math.min(1, (ts - t0) / 3400);
+      var e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      p.style.strokeDashoffset = L * (1 - e);
+      var pt = p.getPointAtLength(L * e);
+      h.setAttribute('transform', 'translate(' + pt.x + ' ' + pt.y + ') scale(1.5)');
+      if (t < 1) svg._raf = requestAnimationFrame(step); else fin();
+    }
+    svg._raf = requestAnimationFrame(step);
+  }
+  function runGate() {
+    prep(gateSvg);
+    gate.classList.remove('ready');
+    clearTimeout(startTimer); clearTimeout(readyTimer);
+    startTimer = setTimeout(function () {
+      play(gateSvg, function () { readyTimer = setTimeout(function () { gate.classList.add('ready'); }, reduce ? 0 : 500); });
+    }, reduce ? 0 : 700);
+    readyTimer = setTimeout(function () { gate.classList.add('ready'); }, 6500);
+  }
+
+  /* ---------- Chalk dust and paper hearts ---------- */
+  var cv = document.getElementById('fx'), ctx = cv.getContext('2d');
+  var W = 0, H = 0, dust = [], parts = [], ambient = !reduce, running = false;
+  var colors = ['#ff9db6', '#d93a6a', '#ffe66b', '#a9c4ff', '#9be3b4'];
+  function size() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function seedDust() {
+    dust = [];
+    var n = W < 520 ? 26 : 48;
+    for (var i = 0; i < n; i++) dust.push({ x: Math.random() * W, y: Math.random() * H, r: 0.6 + Math.random() * 1.6, v: 0.08 + Math.random() * 0.2, a: 0.15 + Math.random() * 0.35, ph: Math.random() * 6.28 });
+  }
+  function heart(x, y, s, rot) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s / 24, s / 24);
+    ctx.beginPath(); ctx.moveTo(0, 8); ctx.bezierCurveTo(-16, -4, -9, -15, 0, -7); ctx.bezierCurveTo(9, -15, 16, -4, 0, 8); ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+  function tick() {
+    ctx.clearRect(0, 0, W, H);
+    var i, d, p;
+    if (ambient) {
+      ctx.fillStyle = '#eef3ea';
+      for (i = 0; i < dust.length; i++) {
+        d = dust[i]; d.y -= d.v; d.ph += 0.01; d.x += Math.sin(d.ph) * 0.2;
+        if (d.y < -4) { d.y = H + 4; d.x = Math.random() * W; }
+        ctx.globalAlpha = d.a; ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 6.283); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    for (i = parts.length - 1; i >= 0; i--) {
+      p = parts[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.07; p.vx *= 0.99; p.rot += p.vr; p.life--;
+      if (p.life <= 0) { parts.splice(i, 1); continue; }
+      ctx.globalAlpha = Math.min(1, p.life / 40); ctx.fillStyle = p.c;
+      if (p.heart) heart(p.x, p.y, p.s, p.rot);
+      else { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-p.s / 3, -p.s / 6, p.s * 0.66, p.s / 3); ctx.restore(); }
+    }
+    ctx.globalAlpha = 1;
+    if (ambient || parts.length) requestAnimationFrame(tick); else running = false;
+  }
+  function loop() { if (!running) { running = true; requestAnimationFrame(tick); } }
+  function burst(x, y, n) {
+    if (reduce) return;
+    for (var i = 0; i < (n || 34); i++) {
+      var a = Math.random() * 6.283, sp = 1.5 + Math.random() * 4.2;
+      parts.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2.6, s: 9 + Math.random() * 13, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.2, c: colors[i % colors.length], heart: Math.random() < 0.6, life: 110 + Math.random() * 70 });
+    }
+    loop();
+  }
+  size(); seedDust(); if (ambient) loop();
+  window.addEventListener('resize', function () { size(); seedDust(); });
+
+  /* ---------- Reveal on scroll ---------- */
+  function startReveal() {
+    var items = document.querySelectorAll('.rv, #finale');
+    if (!('IntersectionObserver' in window)) { for (var i = 0; i < items.length; i++) items[i].classList.add('in'); play(finSvg); return; }
+    if (observer) observer.disconnect();
+    observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var el = en.target;
+        el.classList.add('in');
+        observer.unobserve(el);
+        if (el === finale) {
+          play(finSvg, function () {
+            var r = finSvg.querySelector('.smile').getBoundingClientRect();
+            burst(r.left + r.width / 2, r.top + r.height / 2, 40);
+          });
+        }
+      });
+    }, { threshold: 0.2, rootMargin: '0px 0px -6% 0px' });
+    for (var j = 0; j < items.length; j++) observer.observe(items[j]);
+  }
+
+  /* ---------- Open / replay ---------- */
+  openBtn.addEventListener('click', function () {
+    if (opened) return;
+    opened = true; ambient = false;
+    gate.classList.add('up');
+    body.classList.remove('locked');
+    body.classList.add('opened');
+    window.scrollTo(0, 0);
+    setTimeout(function () { burst(window.innerWidth / 2, window.innerHeight * 0.55, 36); }, reduce ? 0 : 500);
+    setTimeout(function () { gate.hidden = true; }, reduce ? 50 : 1300);
+    startReveal();
+  });
+
+  replay.addEventListener('click', function () {
+    var items = document.querySelectorAll('.rv');
+    for (var i = 0; i < items.length; i++) items[i].classList.remove('in');
+    finale.classList.remove('in');
+    prep(finSvg);
+    body.classList.remove('opened');
+    body.classList.add('locked');
+    window.scrollTo(0, 0);
+    gate.hidden = false;
+    void gate.offsetWidth;
+    gate.classList.remove('up');
+    opened = false;
+    ambient = !reduce; if (ambient) loop();
+    runGate();
+    openBtn.focus({ preventScroll: true });
+  });
+
+  body.classList.add('locked');
+  prep(finSvg);
+  runGate();
+})();
+</script>
+
+</html>
